@@ -47,14 +47,30 @@ def generate_dubug_html():
                 </form>"""
 
     response_data += b"<div> Files:"
-    for parent_folder in os.listdir(C_ROOT_FOLDER + "/store/"):
-        for hash_folder in os.listdir(C_ROOT_FOLDER + "/store/" + parent_folder):
+    storedirpath = C_ROOT_FOLDER + "/store/"
+    makedir_to_path(storedirpath)
+    for parent_folder in os.listdir(storedirpath):
+        for hash_folder in os.listdir(storedirpath + parent_folder):
             response_data += b"<p>"
             response_data += hash_folder.encode()
             response_data += b"</p>"
     response_data += b"</div>"
 
     return response_data
+
+
+def makedir_to_path(dirpath):
+    """Creates directories if they don't exists. Handles shared access.
+
+    Args:
+            dirpath ([type]): post form data
+    """
+    if not os.path.exists(os.path.dirname(dirpath)):
+        try:
+            os.makedirs(os.path.dirname(dirpath))
+        except OSError as exc:  # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
 
 
 class UploadAPIHandler(BaseHTTPRequestHandler):
@@ -75,19 +91,15 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
         and /store/parentfoldername/foldername = file hash
 
         Args:
-            form ([type]): post form data
+            form (cgi.FieldStorage): request data from parse_post_data()
 
         Returns:
             [bytes]: generated html response fragment
         """
         tmp_md = md5(form['file'].file.read())
         dirpath = C_ROOT_FOLDER + "/store/" + tmp_md[:2] + "/" + tmp_md + "/"
-        if not os.path.exists(os.path.dirname(dirpath)):
-            try:
-                os.makedirs(os.path.dirname(dirpath))
-            except OSError as exc:  # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
+
+        makedir_to_path(dirpath)
 
         filename = form['file'].filename
         data = form['file'].file.read()
@@ -120,7 +132,7 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
             placeholder. Defaults to 0.
 
         Returns:
-            {}: {form = request data, info_html = generated html with request data}
+            dict(): {form = request data, info_html = generated html with request data}
         """
         request_form = cgi.FieldStorage(
             fp=self.rfile,
