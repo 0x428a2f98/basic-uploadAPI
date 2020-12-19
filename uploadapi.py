@@ -96,13 +96,12 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
         Returns:
             [bytes]: generated html response fragment
         """
-        tmp_md = md5(form['file'].file.read())
+        data = form['file'].file.read()
+        tmp_md = md5(data)
         dirpath = C_ROOT_FOLDER + "/store/" + tmp_md[:2] + "/" + tmp_md + "/"
-
         makedir_to_path(dirpath)
 
         filename = form['file'].filename
-        data = form['file'].file.read()
         open(dirpath + filename, "wb").write(data)
 
         self.send_response(200)
@@ -180,7 +179,7 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
 
         if self.path == '/upload':
             post_info = self.parse_post_data()
-            response_data = self.upload_endpoint(post_info['form'])
+            response_data += self.upload_endpoint(post_info['form'])
 
         if self.path == '/delete':
             post_info = self.parse_post_data(verbose=True)
