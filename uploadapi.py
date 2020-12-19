@@ -107,7 +107,7 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
                 tmp_md[:2] + "/" + tmp_md + "/"
             makedir_to_path(dirpath)
 
-            filename = pattern.sub("", form['file'].filename) 
+            filename = pattern.sub("", form['file'].filename)
             open(dirpath + filename, "wb").write(data)
 
             response_data = b"upload endpoint. </br> file md5 hash: ["
@@ -121,7 +121,7 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
             self.send_response(400)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-        
+
         return response_data
 
     def delete_endpoint(self, form):
@@ -158,7 +158,7 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-        
+
         return response_data
 
     def download_endpoint(self, form):
@@ -258,7 +258,6 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
             response_data = self.download_endpoint(post_info['form'])
 
         self.wfile.write(bytes(response_data))
-        pass
 
 
 if __name__ == "__main__":
