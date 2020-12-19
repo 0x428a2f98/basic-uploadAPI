@@ -40,11 +40,11 @@ def generate_dubug_html():
                 <p><input type="submit" value="Upload"></p>
                 </form>"""
     response_data += b"""<form enctype="multipart/form-data" method="post" action="delete">
-                <p>Delete : <input type="text" name="file" onchange="this.form.submit();"></p>
+                <p>Delete : <input type="text" name="file"></p>
                 <p><input type="submit" value="Delete"></p>
                 </form>"""
     response_data += b"""<form enctype="multipart/form-data" method="post" action="download">
-                <p>Download : <input type="text" name="file" onchange="this.form.submit();"></p>
+                <p>Download : <input type="text" name="file"></p>
                 <p><input type="submit" value="Download"></p>
                 </form>"""
 
@@ -82,10 +82,10 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
     Get requests provide response with a debug information html.
     """
 
-    def log_message(self, format, *args):
-        """As per https://stackoverflow.com/questions/888834/daemonizing-pythons-basehttpserver
-        """
-        pass
+    # def log_message(self, format, *args):
+    #     """As per https://stackoverflow.com/questions/888834/daemonizing-pythons-basehttpserver
+    #     """
+    #     pass
 
     def upload_endpoint(self, form):
         """Generates md5 hash for an uploaded file and stores file
@@ -98,20 +98,30 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
         Returns:
             [bytes]: generated html response fragment
         """
-        data = form['file'].file.read()
-        tmp_md = md5(data)
-        dirpath = C_ROOT_FOLDER + "/store/" + tmp_md[:2] + "/" + tmp_md + "/"
-        makedir_to_path(dirpath)
+        pattern = re.compile("[^A-z0-9_.]+|\.(?=.*\.)", re.UNICODE)
 
-        filename = form['file'].filename
-        open(dirpath + filename, "wb").write(data)
+        try:
+            data = form['file'].file.read()
+            tmp_md = md5(data)
+            dirpath = C_ROOT_FOLDER + "/store/" + \
+                tmp_md[:2] + "/" + tmp_md + "/"
+            makedir_to_path(dirpath)
 
-        self.send_response(200)
+            filename = pattern.sub("", form['file'].filename) 
+            open(dirpath + filename, "wb").write(data)
 
-        response_data = b"upload endpoint. </br> file md5 hash: ["
-        response_data += (tmp_md).encode()
-        response_data += b"]"
-
+            response_data = b"upload endpoint. </br> file md5 hash: ["
+            response_data += (tmp_md).encode()
+            response_data += b"]"
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+        except AttributeError:
+            response_data = "Uploading ERROR"
+            self.send_response(400)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+        
         return response_data
 
     def delete_endpoint(self, form):
@@ -124,8 +134,6 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
         Returns:
             [bytes]: generated html response fragment
         """
-        response_data = b"</br>files to be deleted: found file = os.remove("
-
         pattern = re.compile("[\W_]+", re.UNICODE)
         tmp_hash = pattern.sub("", form.getfirst("file"))
 
@@ -134,28 +142,56 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
         dirpath = C_ROOT_FOLDER + "/store/" + parent_folder + "/" + hash_folder + "/"
 
         try:
-            for filename in os.listdir(dirpath):
-                response_data += filename.encode()
-                os.remove(dirpath + filename)
+            filename = os.listdir(dirpath)[0]
+            response_data = filename.encode()
+            response_data += b" file deleted.</br>"
+            os.remove(dirpath + filename)
 
             os.rmdir(dirpath)
-
+            response_data += ("/store/" + parent_folder + "/" + hash_folder + "/").encode()
+            response_data += b" folder deleted."
             self.send_response(200)
-            
-            response_data += b"</br>folder = os.rmdir("
-            response_data += dirpath.encode()
-            response_data += b")"
-
-            response_data += b"</br>file deleted."
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
         except FileNotFoundError:
-            response_data += b"file NOT FOUND)</br>file NOT deleted."
-
+            response_data = b"Deletion ERROR"
+            self.send_response(404)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+        
         return response_data
 
-    def download_endpoint(self):
-        """Not implemented
+    def download_endpoint(self, form):
+        """Checks for a file stored in an inputed hash folder, returns file
+        & sets atachment header if file is found.
+
+        Args:
+            form (cgi.FieldStorage): request data from parse_post_data()
+
+        Returns:
+            [bytes]: generated html response fragment
         """
-        pass
+        pattern = re.compile("[\W_]+", re.UNICODE)
+        tmp_hash = pattern.sub("", form.getfirst("file"))
+
+        parent_folder = tmp_hash[:2]
+        hash_folder = tmp_hash
+        dirpath = C_ROOT_FOLDER + "/store/" + parent_folder + "/" + hash_folder + "/"
+
+        try:
+            filename = os.listdir(dirpath)[0]
+            response_data = open(dirpath + filename, "rb").read()
+            self.send_response(200)
+            self.send_header("Content-Disposition",
+                                'attachment; filename="%s"' % filename)
+            self.end_headers()
+        except FileNotFoundError:
+            self.send_response(404)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            response_data = b"Downloading ERROR"
+
+        return response_data
 
     def parse_post_data(self, verbose=0):
         """Uses standart cgi lib to parse request data & return this
@@ -192,7 +228,7 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
         """
         response_data = b"""<html><body>
                     GET method evoked
-                    ver 0.2
+                    ver 0.3
                     </br>"""
 
         if self.path == '/':
@@ -208,31 +244,21 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         """Serve POST request. Depending on endpoint route to upload, delete or download.
         """
-        response_data = b"""<html><body>
-                    POST method evoked
-                    </br>"""
 
         if self.path == '/upload':
             post_info = self.parse_post_data()
-            response_data += self.upload_endpoint(post_info['form'])
+            response_data = self.upload_endpoint(post_info['form'])
 
         if self.path == '/delete':
             post_info = self.parse_post_data(verbose=True)
-            response_data = b"delete endpoint."
-            response_data += post_info['info_html']
-            response_data += self.delete_endpoint(post_info['form'])
+            response_data = self.delete_endpoint(post_info['form'])
 
         if self.path == '/download':
             post_info = self.parse_post_data(verbose=True)
-            response_data = b"download endpoint."
-            response_data += post_info['info_html']
+            response_data = self.download_endpoint(post_info['form'])
 
-        response_data += b"""</html></body>"""
-
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
         self.wfile.write(bytes(response_data))
+        pass
 
 
 if __name__ == "__main__":
