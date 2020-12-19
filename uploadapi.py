@@ -7,6 +7,7 @@ runs HTTPServer on a localhost not as a daemon if executed.
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import os
+import re
 import errno
 import cgi
 import hashlib
@@ -35,7 +36,8 @@ def generate_dubug_html():
         [bytes]: encoded html fragment
     """
     response_data = b"""<form enctype="multipart/form-data" method="post" action="upload">
-                <p>Upload File: <input type="file" name="file" onchange="this.form.submit();"></p>
+                <p>Upload File: <input type="file" name="file"></p>
+                <p><input type="submit" value="Upload"></p>
                 </form>"""
     response_data += b"""<form enctype="multipart/form-data" method="post" action="delete">
                 <p>Delete : <input type="text" name="file" onchange="this.form.submit();"></p>
@@ -112,10 +114,43 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
 
         return response_data
 
-    def delete_endpoint(self):
-        """Not implemented
+    def delete_endpoint(self, form):
+        """Checks for a file stored in an inputed hash folder, deletes file
+        & folder if files are found.
+
+        Args:
+            form (cgi.FieldStorage): request data from parse_post_data()
+
+        Returns:
+            [bytes]: generated html response fragment
         """
-        pass
+        response_data = b"</br>files to be deleted: found file = os.remove("
+
+        pattern = re.compile("[\W_]+", re.UNICODE)
+        tmp_hash = pattern.sub("", form.getfirst("file"))
+
+        parent_folder = tmp_hash[:2]
+        hash_folder = tmp_hash
+        dirpath = C_ROOT_FOLDER + "/store/" + parent_folder + "/" + hash_folder + "/"
+
+        try:
+            for filename in os.listdir(dirpath):
+                response_data += filename.encode()
+                os.remove(dirpath + filename)
+
+            os.rmdir(dirpath)
+
+            self.send_response(200)
+            
+            response_data += b"</br>folder = os.rmdir("
+            response_data += dirpath.encode()
+            response_data += b")"
+
+            response_data += b"</br>file deleted."
+        except FileNotFoundError:
+            response_data += b"file NOT FOUND)</br>file NOT deleted."
+
+        return response_data
 
     def download_endpoint(self):
         """Not implemented
@@ -185,6 +220,7 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
             post_info = self.parse_post_data(verbose=True)
             response_data = b"delete endpoint."
             response_data += post_info['info_html']
+            response_data += self.delete_endpoint(post_info['form'])
 
         if self.path == '/download':
             post_info = self.parse_post_data(verbose=True)
@@ -200,7 +236,7 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    #runs HTTPServer on a localhost not as a daemon
+    # runs HTTPServer on a localhost not as a daemon
     Handler = UploadAPIHandler
 
     httpd = HTTPServer(("localhost", 5050), Handler)
