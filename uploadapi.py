@@ -16,7 +16,7 @@ C_ROOT_FOLDER = "/home/nuser/Documents/0x428a2f98"  # constant for dubuging
 
 
 def md5(data):
-    """[summary]
+    """Uses <hashlib> to get md5 file hash
 
     Args:
         data (bytes): file data
@@ -117,7 +117,7 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'text/html')
             self.end_headers()
         except AttributeError:
-            response_data = "Uploading ERROR"
+            response_data = "Upload ERROR"
             self.send_response(400)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
@@ -137,27 +137,33 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
         pattern = re.compile("[\W_]+", re.UNICODE)
         tmp_hash = pattern.sub("", form.getfirst("file"))
 
-        parent_folder = tmp_hash[:2]
-        hash_folder = tmp_hash
-        dirpath = C_ROOT_FOLDER + "/store/" + parent_folder + "/" + hash_folder + "/"
-
-        try:
-            filename = os.listdir(dirpath)[0]
-            response_data = filename.encode()
-            response_data += b" file deleted.</br>"
-            os.remove(dirpath + filename)
-
-            os.rmdir(dirpath)
-            response_data += ("/store/" + parent_folder + "/" + hash_folder + "/").encode()
-            response_data += b" folder deleted."
-            self.send_response(200)
+        if len(tmp_hash) == 0:
+            response_data = b"Delete ERROR"
+            self.send_response(400)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-        except FileNotFoundError:
-            response_data = b"Deletion ERROR"
-            self.send_response(404)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
+        else:
+            parent_folder = tmp_hash[:2]
+            hash_folder = tmp_hash
+            dirpath = C_ROOT_FOLDER + "/store/" + parent_folder + "/" + hash_folder + "/"
+
+            try:
+                filename = os.listdir(dirpath)[0]
+                response_data = filename.encode()
+                response_data += b" file deleted.</br>"
+                os.remove(dirpath + filename)
+
+                os.rmdir(dirpath)
+                response_data += ("/store/" + parent_folder + "/" + hash_folder + "/").encode()
+                response_data += b" folder deleted."
+                self.send_response(200)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+            except FileNotFoundError:
+                response_data = b"Delete ERROR"
+                self.send_response(404)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
 
         return response_data
 
@@ -173,23 +179,28 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
         """
         pattern = re.compile("[\W_]+", re.UNICODE)
         tmp_hash = pattern.sub("", form.getfirst("file"))
-
-        parent_folder = tmp_hash[:2]
-        hash_folder = tmp_hash
-        dirpath = C_ROOT_FOLDER + "/store/" + parent_folder + "/" + hash_folder + "/"
-
-        try:
-            filename = os.listdir(dirpath)[0]
-            response_data = open(dirpath + filename, "rb").read()
-            self.send_response(200)
-            self.send_header("Content-Disposition",
-                                'attachment; filename="%s"' % filename)
-            self.end_headers()
-        except FileNotFoundError:
-            self.send_response(404)
+        if len(tmp_hash) == 0:
+            response_data = b"Download ERROR"
+            self.send_response(400)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-            response_data = b"Downloading ERROR"
+        else:
+            parent_folder = tmp_hash[:2]
+            hash_folder = tmp_hash
+            dirpath = C_ROOT_FOLDER + "/store/" + parent_folder + "/" + hash_folder + "/"
+
+            try:
+                filename = os.listdir(dirpath)[0]
+                response_data = open(dirpath + filename, "rb").read()
+                self.send_response(200)
+                self.send_header("Content-Disposition",
+                                    'attachment; filename="%s"' % filename)
+                self.end_headers()
+            except FileNotFoundError:
+                self.send_response(404)
+                self.send_header('Content-type', 'text/html')
+                self.end_headers()
+                response_data = b"Download ERROR"
 
         return response_data
 
