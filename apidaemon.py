@@ -17,16 +17,26 @@ import uploadapi
 class APIDaemon(Daemon):
     """Basic implementation provided by an original base daemon class author with
     run() method that setups and starts HTTPServer
+
+    Attributes:
+        port : port to serve requests on.
+        address : address to serve requests on.
     """
+    def __init__(self, pidfile):
+        """Adds port and address attributes to APIDaemon instance.
+        """        
+        super().__init__(pidfile) 
+        self.port = "4040"
+        self.address = "localhost"
+
     def run(self):
         """Inits HTTPServer with a custom upload api http request handler implemented
         in <uploadapi>.
         """
-        # while True:
         importlib.reload(uploadapi)
         Handler = uploadapi.UploadAPIHandler
 
-        httpd = HTTPServer(("localhost", 4040), Handler)
+        httpd = HTTPServer((self.address, int(self.port)), Handler)
         httpd.serve_forever()
         while True:
             time.sleep(1)
@@ -43,10 +53,11 @@ class APIDaemon(Daemon):
             pid = None
 
         if pid:
-            message = "Daemon already running.\n"
+            message = "UploadAPI daemon running.\n"
+            message += "Servicing api requests on: " + self.address + ":" + self.port + "\n"
             sys.stderr.write(message.format(self.pidfile))
         else:
-            message = "Daemon not running.\n"
+            message = "UploadAPI daemon not running.\n"
             sys.stderr.write(message.format(self.pidfile))
 
 
