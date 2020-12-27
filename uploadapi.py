@@ -133,7 +133,7 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
         pattern = re.compile("[\W_]+", re.UNICODE)
         tmp_hash = pattern.sub("", form.getfirst("file"))
 
-        if len(tmp_hash) == 0:
+        if not len(tmp_hash) == 32:
             response_data = b"Delete ERROR"
             self.send_response(400)
             self.send_header('Content-type', 'text/html')
@@ -175,7 +175,7 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
         """
         pattern = re.compile("[\W_]+", re.UNICODE)
         tmp_hash = pattern.sub("", form.getfirst("file"))
-        if len(tmp_hash) == 0:
+        if not len(tmp_hash) == 32:
             response_data = b"Download ERROR"
             self.send_response(400)
             self.send_header('Content-type', 'text/html')
