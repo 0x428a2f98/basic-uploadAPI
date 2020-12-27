@@ -18,7 +18,7 @@ C_ROOT_FOLDER = "/home/nuser/Documents/0x428a2f98"  # constant for dubuging
 def md5(data):
     """Uses <hashlib> to get md5 file hash
 
-    Args:
+    Args: 
         data (bytes): file data
 
     Returns:
@@ -82,11 +82,6 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
     Get requests provide response with a debug information html.
     """
 
-    # def log_message(self, format, *args):
-    #     """As per https://stackoverflow.com/questions/888834/daemonizing-pythons-basehttpserver
-    #     """
-    #     pass
-
     def upload_endpoint(self, form):
         """Generates md5 hash for an uploaded file and stores file
         in a /store/parentfoldername = 1st 2 letters of a file hash
@@ -108,7 +103,8 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
             makedir_to_path(dirpath)
 
             filename = pattern.sub("", form['file'].filename)
-            open(dirpath + filename, "wb").write(data)
+            with open(dirpath + filename, "wb") as fw:
+                fw.write(data)
 
             response_data = b"upload endpoint. </br> file md5 hash: ["
             response_data += (tmp_md).encode()
@@ -191,7 +187,8 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
 
             try:
                 filename = os.listdir(dirpath)[0]
-                response_data = open(dirpath + filename, "rb").read()
+                with open(dirpath + filename, "rb") as rf:
+                    response_data = rf.read()
                 self.send_response(200)
                 self.send_header("Content-Disposition",
                                     'attachment; filename="%s"' % filename)
