@@ -146,7 +146,7 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
             try:
                 filename = os.listdir(dirpath)[0]
                 response_data = filename.encode()
-                response_data += b" file deleted.</br>"
+                response_data += b" file deleted. "
                 os.remove(dirpath + filename)
 
                 os.rmdir(dirpath)
@@ -242,7 +242,7 @@ class UploadAPIHandler(BaseHTTPRequestHandler):
         if self.path == '/':
             response_data += generate_dubug_html()
 
-        response_data += b"""</html></body>"""
+        response_data += b"""</body></html>"""
 
         self.send_response(200)
         self.send_header('Content-type', 'text/html')

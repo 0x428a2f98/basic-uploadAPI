@@ -12,7 +12,7 @@ usage: apidaemon.py start|status|stop|restart
 ```
 curl -O -J -d file=<filehash> 127.0.0.1:<port>/download
  ```
- /download example:
+ POST /download example:
 ```
 [nuser@host0x428a2f98 Downloads]$ curl -O -J -d file=05698f7b1d3cc945aaa616d6edfc578d 127.0.0.1:5050/download
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
@@ -25,34 +25,40 @@ README.md
 ```
 curl -d file=<filehash> 127.0.0.1:<port>/delete
 ```
- /delete example:
+ POST /delete example:
 ```
 [nuser@host0x428a2f98 Downloads]$ curl -d file=05698f7b1d3cc945aaa616d6edfc578d 127.0.0.1:5050/delete
-README.md file deleted.
-</br>
-/store/05/05698f7b1d3cc945aaa616d6edfc578d/ folder deleted.
+README.md file deleted. /store/05/05698f7b1d3cc945aaa616d6edfc578d/ folder deleted.
 ```
 ## /upload:
 ```
 curl -F file=@<filepath> 127.0.0.1:<port>/upload
 ``` 
- /upload example:
+ POST /upload & GET / example:
 ```
 [nuser@host0x428a2f98 Downloads]$ curl -F file=@README.md 127.0.0.1:5050/upload
 upload endpoint. </br> file md5 hash: [05698f7b1d3cc945aaa616d6edfc578d]
 [nuser@host0x428a2f98 Downloads]$ curl 127.0.0.1:5050/
-<html><body>
+<html>
+<body>
 GET method evoked
 ver 0.2
-</br><form enctype="multipart/form-data" method="post" action="upload">
+</br>
+<form enctype="multipart/form-data" method="post" action="upload">
 <p>Upload File: <input type="file" name="file"></p>
 <p><input type="submit" value="Upload"></p>
-</form><form enctype="multipart/form-data" method="post" action="delete">
+</form>
+<form enctype="multipart/form-data" method="post" action="delete">
 <p>Delete : <input type="text" name="file"></p>
 <p><input type="submit" value="Delete"></p>
-</form><form enctype="multipart/form-data" method="post" action="download">
+</form>
+<form enctype="multipart/form-data" method="post" action="download">
 <p>Download : <input type="text" name="file"></p>
 <p><input type="submit" value="Download"></p>
-</form><div> Files:<p>05698f7b1d3cc945aaa616d6edfc578d</p></div>
-</html></body>
+</form>
+<div> Files:
+<p>05698f7b1d3cc945aaa616d6edfc578d</p>
+</div>
+</body>
+</html>
 ```
